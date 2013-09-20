@@ -1,5 +1,6 @@
 ### We will be using ggplot2 for the graphing and plyr for some of the data management
 require(ggplot2);
+require(reshape2);
 require(plyr);
 
 ### Source in the helper functions code
@@ -349,3 +350,161 @@ plot.df <- rbind(data.frame(label = 'ideal',  island = distrib.ideal),
                  data.frame(label = 'sample', island = metropolis.sample.1000));
 
 qplot(island, data = plot.df, fill = label, position = 'dodge', geom = 'bar');
+
+
+#########################################################################################################
+#########################################################################################################
+###
+### Exercise 5.1
+###
+#########################################################################################################
+#########################################################################################################
+
+cointoss10 <- readRDS('cointoss10.rds');
+
+K <- 5;
+mu.grid    <- seq(0.001, 0.999, by = 0.001);
+theta.grid <- seq(0.001, 0.999, by = 0.001);
+
+mu.prior   <- dbeta(mu.grid, 2, 2);
+
+density.posterior.10.K0005 <- calculate.hierarchical.posterior(cointoss10, mu.grid, theta.grid, mu.prior, K);
+
+plot1 <- qplot(mu.grid[Var1], theta.grid[Var2], z = value, data = melt(density.posterior.10.K0005), geom = 'contour', colour = ..level.., xlim = c(0, 1), ylim = c(0, 1));
+print(plot1);
+
+
+#########################################################################################################
+#########################################################################################################
+###
+### Exercise 5.2
+###
+#########################################################################################################
+#########################################################################################################
+
+library(gridExtra);
+
+
+cointoss10 <- readRDS('cointoss10.rds');
+mu.grid    <- seq(0.001, 0.999, by = 0.001);
+theta.grid <- seq(0.001, 0.999, by = 0.001);
+
+mu.prior   <- dbeta(mu.grid, 2, 2);
+
+K <- 5;
+
+density.posterior.10.K0005 <- calculate.hierarchical.posterior(cointoss10, mu.grid, theta.grid, mu.prior, K);
+
+plot.post.10.K0005 <- qplot(mu.grid[Var1], theta.grid[Var2], z = value, data = melt(density.posterior.10.K0005), geom = 'contour',
+                            colour = ..level.., xlim = c(0, 1), ylim = c(0, 1), xlab = expression(mu), ylab = expression(theta));
+
+
+#########################################################################################################
+#########################################################################################################
+###
+### Exercise 5.2
+###
+#########################################################################################################
+#########################################################################################################
+
+use.data <- cointoss10;
+
+density.data     <- calculate.p.y.given.theta(use.data, mu.grid, theta.grid);
+density.theta.mu <- calculate.p.theta.given.mu(mu.grid, theta.grid, K);
+density.mu       <- calculate.mu.prior(mu.prior, theta.grid);
+
+plot.data     <- qplot(mu.grid[Var1], theta.grid[Var2], z = value, data = melt(density.data),     geom = 'contour',
+                       colour = ..level.., xlim = c(0, 1), ylim = c(0, 1), xlab = expression(mu), ylab = expression(theta));
+plot.theta.mu <- qplot(mu.grid[Var1], theta.grid[Var2], z = value, data = melt(density.theta.mu), geom = 'contour',
+                       colour = ..level.., xlim = c(0, 1), ylim = c(0, 1), xlab = expression(mu), ylab = expression(theta));
+plot.muprior  <- qplot(mu.grid[Var1], theta.grid[Var2], z = value, data = melt(density.mu),       geom = 'contour',
+                       colour = ..level.., xlim = c(0, 1), ylim = c(0, 1), xlab = expression(mu), ylab = expression(theta));
+
+grid.arrange(plot.muprior       + ggtitle(paste(expression(mu), 'prior')),
+             plot.theta.mu      + ggtitle(paste("p(", expression(theta), "|", expression(mu), ")", sep = '')),
+             plot.data          + ggtitle("Likelihood"),
+             plot.post.10.K0005 + ggtitle("Posterior Distribution"), ncol = 2);
+
+
+
+#########################################################################################################
+#########################################################################################################
+###
+### Exercise 5.3
+###
+#########################################################################################################
+#########################################################################################################
+
+K <- 100;
+
+density.posterior.10.K0100 <- calculate.hierarchical.posterior(cointoss10, mu.grid, theta.grid, mu.prior, K);
+
+plot.post.10.K0100 <- qplot(mu.grid[Var1], theta.grid[Var2], z = value, data = melt(density.posterior.10.K0100), geom = 'contour',
+                            colour = ..level.., xlim = c(0, 1), ylim = c(0, 1), xlab = expression(mu), ylab = expression(theta));
+
+grid.arrange(plot.muprior       + ggtitle(paste(expression(mu), 'prior')),
+             plot.theta.mu      + ggtitle(paste("p(", expression(theta), "|", expression(mu), ")", sep = '')),
+             plot.data          + ggtitle("Likelihood"),
+             plot.post.10.K0005 + ggtitle("Posterior Distribution for K = 5"),
+             plot.post.10.K0100 + ggtitle("Posterior Distribution for K = 100"), ncol = 3);
+
+
+#########################################################################################################
+#########################################################################################################
+###
+### Exercise 5.4
+###
+#########################################################################################################
+#########################################################################################################
+
+K <- 1000;
+
+density.posterior.10.K1000 <- calculate.hierarchical.posterior(cointoss10, mu.grid, theta.grid, mu.prior, K);
+
+plot.post.10.K1000 <- qplot(mu.grid[Var1], theta.grid[Var2], z = value, data = melt(density.posterior.10.K1000), geom = 'contour',
+                            colour = ..level.., xlim = c(0, 1), ylim = c(0, 1), xlab = expression(mu), ylab = expression(theta));
+
+grid.arrange(plot.muprior       + ggtitle(paste(expression(mu), 'prior')),
+             plot.theta.mu      + ggtitle(paste("p(", expression(theta), "|", expression(mu), ")", sep = '')),
+             plot.data          + ggtitle("Likelihood"),
+             plot.post.10.K0005 + ggtitle("Posterior Distribution for K = 5"),
+             plot.post.10.K0100 + ggtitle("Posterior Distribution for K = 100"),
+             plot.post.10.K1000 + ggtitle("Posterior Distribution for K = 1000"), ncol = 3);
+
+
+#########################################################################################################
+#########################################################################################################
+###
+### Exercise 6.1
+###
+#########################################################################################################
+#########################################################################################################
+
+### Set a seed to ensure that the random processes are repeatable.
+set.seed(42);
+
+use.data <- cointoss10;
+sample.count <- 10000;
+
+chain.count  <- 5;
+adapt.steps  <- 500;
+burnin.steps <- 1000;
+
+jags.file <- 'singlemint_singlecoin.jag';
+
+
+### First we set up the model and check the priors
+jagsPriorModel <- jags.model(jags.file, data = list(nFlips = length(use.data)), n.chains = chain.count, n.adapt = adapt.steps);
+
+update(jagsPriorModel, n.iter = burnin.steps);
+
+coda.sample.data <- coda.samples(jagsPriorModel, variable.names = c('mu', 'theta'), n.iter = sample.count);
+mcmc.prior.samples <- as.matrix(coda.sample.data);
+
+
+jagsPosteriorModel <- jags.model(jags.file, data = list(nFlips = length(use.data), y = use.data), n.chains = chain.count, n.adapt = adapt.steps);
+
+update(jagsPosteriorModel, n.iter = burnin.steps);
+
+coda.sample.data = coda.samples(jagsPosteriorModel, variable.names = c('mu', 'theta'), n.iter = sample.count);
+mcmc.posterior.samples <- as.matrix(coda.sample.data);
