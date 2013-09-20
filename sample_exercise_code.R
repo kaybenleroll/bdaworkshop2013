@@ -2,9 +2,15 @@
 require(ggplot2);
 require(reshape2);
 require(plyr);
+require(gridExtra);
+require(rjags);
+
 
 ### Source in the helper functions code
 source('helper_functions.R');
+
+
+set.seed(42);
 
 
 #########################################################################################################
@@ -15,8 +21,6 @@ source('helper_functions.R');
 #########################################################################################################
 #########################################################################################################
 
-
-set.seed(42);
 
 disease.data <- generate.disease.test.data(n = 1000000, prior.prob = 0.001, hit.rate = 0.99, false.alarm = 0.05);
 calculate.disease.test.probabilities(disease.data);
@@ -382,8 +386,6 @@ print(plot1);
 #########################################################################################################
 #########################################################################################################
 
-library(gridExtra);
-
 
 cointoss10 <- readRDS('cointoss10.rds');
 mu.grid    <- seq(0.001, 0.999, by = 0.001);
@@ -480,9 +482,6 @@ grid.arrange(plot.muprior       + ggtitle(paste(expression(mu), 'prior')),
 #########################################################################################################
 #########################################################################################################
 
-### Set a seed to ensure that the random processes are repeatable.
-set.seed(42);
-
 use.data <- cointoss10;
 sample.count <- 10000;
 
@@ -498,13 +497,300 @@ jagsPriorModel <- jags.model(jags.file, data = list(nFlips = length(use.data)), 
 
 update(jagsPriorModel, n.iter = burnin.steps);
 
-coda.sample.data <- coda.samples(jagsPriorModel, variable.names = c('mu', 'theta'), n.iter = sample.count);
-mcmc.prior.samples <- as.matrix(coda.sample.data);
+coda.prior.sample.data <- coda.samples(jagsPriorModel, variable.names = c('mu', 'theta'), n.iter = sample.count);
+mcmc.prior.samples     <- as.matrix(coda.prior.sample.data);
+
+### Prior data can be plotted directly
+plot(coda.prior.sample.data)
 
 
 jagsPosteriorModel <- jags.model(jags.file, data = list(nFlips = length(use.data), y = use.data), n.chains = chain.count, n.adapt = adapt.steps);
 
 update(jagsPosteriorModel, n.iter = burnin.steps);
 
-coda.sample.data = coda.samples(jagsPosteriorModel, variable.names = c('mu', 'theta'), n.iter = sample.count);
-mcmc.posterior.samples <- as.matrix(coda.sample.data);
+coda.posterior.sample.data <- coda.samples(jagsPosteriorModel, variable.names = c('mu', 'theta'), n.iter = sample.count);
+mcmc.posterior.samples     <- as.matrix(coda.posterior.sample.data);
+
+### Posterior data can be plotted directly
+plot(coda.posterior.sample.data)
+
+
+#########################################################################################################
+#########################################################################################################
+###
+### Exercise 6.2
+###
+#########################################################################################################
+#########################################################################################################
+
+### This code is for cointoss10, you can repeat the code with cointoss1000
+
+plot.theta.mu    <- qplot(mu.grid[24 + Var1], theta.grid[24 + Var2], z = value, data = melt(density.theta.mu[25:975, 25:975]),
+                          geom = 'contour',   colour = ..level.., xlim = c(0, 1), ylim = c(0, 1),
+                          xlab = expression(mu), ylab = expression(theta));
+
+plot.bayes.prior <- qplot(mu, theta, data = data.frame(mcmc.prior.samples),
+                          geom = 'density2d', colour = ..level.., xlim = c(0, 1), ylim = c(0, 1),
+                          xlab = expression(mu), ylab = expression(theta))
+
+grid.arrange(plot.theta.mu, plot.bayes.prior, ncol = 2);
+
+
+#########################################################################################################
+#########################################################################################################
+###
+### Exercise 6.3
+###
+#########################################################################################################
+#########################################################################################################
+
+### Compare mu and theta prior and posteriors
+qplot(mcmc.prior.samples[, 'mu'],    geom = 'density', xlab = expression(mu), ylab = 'Prob Density') +
+    geom_density(aes(x = mcmc.posterior.samples[, 'mu']), colour = 'red');
+
+qplot(mcmc.prior.samples[, 'theta'], geom = 'density', xlab = expression(mu), ylab = 'Prob Density') +
+    geom_density(aes(x = mcmc.posterior.samples[, 'theta']), colour = 'red')
+
+qplot(mcmc.prior.samples[, 'mu'],    geom = 'density', xlab = expression(mu), ylab = 'Prob Density') +
+    geom_density(aes(x = mcmc.posterior.samples[, 'mu']),    colour = 'red') +
+    geom_density(aes(x = mcmc.prior.samples    [, 'theta']), colour = 'blue') +
+    geom_density(aes(x = mcmc.posterior.samples[, 'theta']), colour = 'green');
+
+
+#########################################################################################################
+#########################################################################################################
+###
+### Exercise 6.4
+###
+#########################################################################################################
+#########################################################################################################
+
+use.data <- cointoss10;
+sample.count <- 10000;
+
+K <- 100;
+
+chain.count  <- 5;
+adapt.steps  <- 500;
+burnin.steps <- 1000;
+
+jags.file <- 'singlemint_singlecoin_setK.jag';
+
+
+### First we set up the model and check the priors
+jagsPriorModel <- jags.model(jags.file, data = list(nFlips = length(use.data), K = K), n.chains = chain.count, n.adapt = adapt.steps);
+
+update(jagsPriorModel, n.iter = burnin.steps);
+
+coda.prior.sample.data <- coda.samples(jagsPriorModel, variable.names = c('mu', 'theta'), n.iter = sample.count);
+mcmc.prior.samples     <- as.matrix(coda.prior.sample.data);
+
+### Prior data can be plotted directly
+plot(coda.prior.sample.data)
+
+
+jagsPosteriorModel <- jags.model(jags.file, data = list(nFlips = length(use.data), K = K, y = use.data), n.chains = chain.count, n.adapt = adapt.steps);
+
+update(jagsPosteriorModel, n.iter = burnin.steps);
+
+coda.posterior.sample.data <- coda.samples(jagsPosteriorModel, variable.names = c('mu', 'theta'), n.iter = sample.count);
+mcmc.posterior.samples     <- as.matrix(coda.posterior.sample.data);
+
+### Posterior data can be plotted directly
+plot(coda.posterior.sample.data)
+
+
+#########################################################################################################
+#########################################################################################################
+###
+### Exercise 6.6
+###
+#########################################################################################################
+#########################################################################################################
+
+twocoin.data <- readRDS('singlemint_twocoin.rds');
+
+use.data <- twocoin.data;
+sample.count <- 10000;
+
+chain.count  <- 5;
+adapt.steps  <- 500;
+burnin.steps <- 1000;
+
+jags.file <- 'singlemint_multiplecoin.jag';
+
+
+### First we set up the model and check the priors
+jagsPriorModel <- jags.model(jags.file, data = list(nTrialTotal = dim(use.data)[2],
+                                                    nCoins      = length(unique(use.data['coin', ])),
+                                                    coin        = use.data['coin', ]),
+                             n.chains = chain.count, n.adapt = adapt.steps);
+
+update(jagsPriorModel, n.iter = burnin.steps);
+
+coda.prior.sample.data <- coda.samples(jagsPriorModel, variable.names = c('mu', 'theta'), n.iter = sample.count);
+mcmc.prior.samples     <- as.matrix(coda.prior.sample.data);
+
+### Prior data can be plotted directly
+plot(coda.prior.sample.data)
+
+
+jagsPosteriorModel <- jags.model(jags.file, data = list(nTrialTotal = dim(use.data)[2],
+                                                        nCoins      = length(unique(use.data['coin', ])),
+                                                        coin        = use.data['coin', ],
+                                                        y           = use.data['cointoss', ]),
+                                 n.chains = chain.count, n.adapt = adapt.steps);
+
+update(jagsPosteriorModel, n.iter = burnin.steps);
+
+coda.posterior.sample.data <- coda.samples(jagsPosteriorModel, variable.names = c('mu', 'theta'), n.iter = sample.count);
+mcmc.posterior.samples     <- as.matrix(coda.posterior.sample.data);
+
+### Posterior data can be plotted directly
+plot(coda.posterior.sample.data)
+
+
+#########################################################################################################
+#########################################################################################################
+###
+### Exercise 6.8
+###
+#########################################################################################################
+#########################################################################################################
+
+fivecoin.data <- readRDS('singlemint_fivecoin.rds');
+
+use.data <- fivecoin.data;
+sample.count <- 10000;
+
+chain.count  <- 5;
+adapt.steps  <- 500;
+burnin.steps <- 1000;
+
+jags.file <- 'singlemint_multiplecoin.jag';
+
+
+### First we set up the model and check the priors
+jagsPriorModel <- jags.model(jags.file, data = list(nTrialTotal = dim(use.data)[2],
+                                                    nCoins      = length(unique(use.data['coin', ])),
+                                                    coin        = use.data['coin', ]),
+                             n.chains = chain.count, n.adapt = adapt.steps);
+
+update(jagsPriorModel, n.iter = burnin.steps);
+
+coda.prior.sample.data <- coda.samples(jagsPriorModel, variable.names = c('mu', 'theta'), n.iter = sample.count);
+mcmc.prior.samples     <- as.matrix(coda.prior.sample.data);
+
+### Prior data can be plotted directly
+plot(coda.prior.sample.data)
+
+
+jagsPosteriorModel <- jags.model(jags.file, data = list(nTrialTotal = dim(use.data)[2],
+                                                        nCoins      = length(unique(use.data['coin', ])),
+                                                        coin        = use.data['coin', ],
+                                                        y           = use.data['cointoss', ]),
+                                 n.chains = chain.count, n.adapt = adapt.steps);
+
+update(jagsPosteriorModel, n.iter = burnin.steps);
+
+coda.posterior.sample.data <- coda.samples(jagsPosteriorModel, variable.names = c('mu', 'theta'), n.iter = sample.count);
+mcmc.posterior.samples     <- as.matrix(coda.posterior.sample.data);
+
+### Posterior data can be plotted directly
+plot(coda.posterior.sample.data)
+
+
+#########################################################################################################
+#########################################################################################################
+###
+### Exercise 7.1
+###
+#########################################################################################################
+#########################################################################################################
+
+twocoin.data <- readRDS('singlemint_twocoin.rds');
+
+use.data <- twocoin.data;
+sample.count <- 10000;
+
+chain.count  <- 5;
+adapt.steps  <- 500;
+burnin.steps <- 1000;
+
+jags.file <- 'singlemint_full.jag';
+
+
+### First we set up the model and check the priors
+jagsPriorModel <- jags.model(jags.file, data = list(nTrialTotal = dim(use.data)[2],
+                                                    nCoins      = length(unique(use.data['coin', ])),
+                                                    coin        = use.data['coin', ]),
+                             n.chains = chain.count, n.adapt = adapt.steps);
+
+update(jagsPriorModel, n.iter = burnin.steps);
+
+coda.prior.full.sample.data <- coda.samples(jagsPriorModel, variable.names = c('mu', 'kappa', 'theta'), n.iter = sample.count);
+mcmc.prior.full.samples     <- as.matrix(coda.prior.sample.data);
+
+### Prior data can be plotted directly
+plot(coda.prior.full.sample.data)
+
+
+jagsPosteriorModel <- jags.model(jags.file, data = list(nTrialTotal = dim(use.data)[2],
+                                                        nCoins      = length(unique(use.data['coin', ])),
+                                                        coin        = use.data['coin', ],
+                                                        y           = use.data['cointoss', ]),
+                                 n.chains = chain.count, n.adapt = adapt.steps);
+
+update(jagsPosteriorModel, n.iter = burnin.steps);
+
+coda.posterior.full.sample.data <- coda.samples(jagsPosteriorModel, variable.names = c('mu', 'kappa', 'theta'), n.iter = sample.count);
+mcmc.posterior.full.samples     <- as.matrix(coda.posterior.sample.data);
+
+### Posterior data can be plotted directly
+plot(coda.posterior.full.sample.data)
+
+
+#########################################################################################################
+#########################################################################################################
+###
+### Exercise 7.2
+###
+#########################################################################################################
+#########################################################################################################
+
+qplot(mcmc.prior.samples[, 'mu'], geom = 'density', xlab = expression(mu), ylab = 'Probability Density') +
+    geom_density(aes(x = mcmc.posterior.samples     [, 'mu']), colour = 'red') +
+    geom_density(aes(x = mcmc.posterior.full.samples[, 'mu']), colour = 'blue');
+
+
+
+#########################################################################################################
+#########################################################################################################
+###
+### Exercise 7.3
+###
+#########################################################################################################
+#########################################################################################################
+
+coin1 <- rbinom(10, 1, 0.62);
+coin2 <- rbinom(20, 1, 0.63);
+coin3 <- rbinom(15, 1, 0.59);
+coin4 <- rbinom(25, 1, 0.61);
+coin5 <- rbinom(20, 1, 0.60);
+
+coin.tight <- rbind(coin     = c(rep(1, 10), rep(2, 20), rep(3, 15), rep(4, 25), rep(5, 20)),
+                    cointoss = c(coin1,      coin2,      coin3,      coin4,      coin5));
+
+
+
+#########################################################################################################
+#########################################################################################################
+###
+### Exercise 7.7
+###
+#########################################################################################################
+#########################################################################################################
+
+cointoss.5and50 <- generate.hierarchical.coin.data(mu = 0.5, K = 20, coins = 5,  tosses = 250);
+
+cointoss.50and5 <- generate.hierarchical.coin.data(mu = 0.5, K = 20, coins = 50, tosses = 250);

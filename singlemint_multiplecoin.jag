@@ -4,6 +4,7 @@ model {
     for ( t in 1:nTrialTotal ) {
         y[t] ~ dbern( theta[ coin[ t ] ] )
     }
+
     # Prior:
     for ( j in 1:nCoins ) {
         theta[j] ~ dbeta( a , b )T(0.001,0.999)

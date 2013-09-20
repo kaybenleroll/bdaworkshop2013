@@ -114,7 +114,7 @@ $p(\theta | D)$,
 
 In those special cases, the likelihood function has a prior and
 posterior distribution with the same functional form, i.e. the prior
-and the posterior are two members of the same `family' of functions. 
+and the posterior are two members of the same `family' of functions.
 Such prior is called a conjugate prior.
 
 For the rest of this workshop we are going to deal with estimating the
@@ -453,10 +453,15 @@ hierarchical model. What does $\mu$ represent in this case?
 \vspace{5mm}
 
 We now have all the tools we need to build hierarchical models, so let
-us extend the above scenario in more interesting ways. What if we have
-multiple coins minted from the same mint? What types of inferential
-models can be built from this set up.
+us extend the above scenario in more interesting ways.
 
+\begin{itemize}
+\item What if we have multiple coins minted from the same mint?
+\item How can we use results from different coins to get inferences on the mint?
+\item What types of inferential models can be built from this set up?
+\end{itemize}
+
+\noindent
 The JAGS model for a single mint, multiple coin model is supplied in
 the file \texttt{singlemint\_\-multiplecoin.jag}. Open the file and
 make sure you understand the model. Data for multiple coin tosses with
@@ -514,8 +519,8 @@ from the prior and posterior distributions.
 inferences we make on the parameters of the model based on the data?
 
 \worksheetexercise Create a new dataset for five coins with different
-counts of coin tosses for each coin. Using different values of
-$\theta$ for each coin, but have them be relatively similar.
+counts of coin tosses for each coin. Use different values of $\theta$
+for each coin, but have them be relatively similar.
 
 \worksheetexercise Run the fully Bayesian model on your
 data. Make inferences on the posterior distribution. How do these

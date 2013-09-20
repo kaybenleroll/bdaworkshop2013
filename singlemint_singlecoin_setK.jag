@@ -12,7 +12,6 @@ model {
     a <- mu * K
     b <- (1 - mu) * K
 
-    K <- 5
     priorA <- 2
     priorB <- 2
 }
